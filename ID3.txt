@@ -1,0 +1,135 @@
+library("data.tree")
+library("visNetwork")
+
+#-----------entropy-------------#
+
+calculate_entropy = function( name.y, input.dat )
+{
+    y = unique( as.matrix(input.dat[name.y]) )
+
+    no.of.dist = c(rep(0,length(y)))
+    
+    for( i in 1:length(y) )
+    {
+        no.of.dist[i] = length( which(input.dat[name.y]==y[i]) )
+    }
+    
+    entropy.y=0
+    
+    for( i in no.of.dist )
+    {
+        p=i/nrow(input.dat)
+        entropy.y = entropy.y + p * log2( p )
+    }
+    
+    entropy.y = -entropy.y
+    
+    return( entropy.y )
+}
+
+#---------------------------------------------------------------------#
+calculate_conditional_entropy = function( input.dat, name.y )
+{
+    y = unique( as.matrix(input.dat[name.y]) )
+    
+    col.names = colnames( input.dat )
+
+    col.names = setdiff( col.names, name.y )
+
+    conditional.entropy = c()
+    
+    entropys = rep( 0, ncol(input.dat)-1 )
+    
+    for( i in col.names )
+    {
+        row.n = unique( as.matrix(input.dat[i]) )
+        
+        entro = 0
+        
+        for(j in row.n)
+        {
+            temp = c()
+            for(k in y)
+            {
+               temp = c( temp, length( which(input.dat[i]==j  & input.dat[name.y]==k) ) )
+            }
+            for(k in temp)
+            {
+                p = k / sum( temp )
+                if( p !=0 )
+                {
+                    entro = entro + (sum(temp) / nrow(input.dat)) * p * log2( p )              
+                }
+            }
+        }
+        conditional.entropy = c( conditional.entropy, -entro )
+    }
+
+    for(i in 1:length( col.names ))
+    {
+      if( conditional.entropy[i] == min(conditional.entropy) )
+        root = col.names[i]
+    }
+    
+    print("Conditional Entropies : ")
+    print(conditional.entropy)
+    return(root)
+}
+
+#---------------------------------------------------------------------------#
+end_tree = function( input.dat , root ,name.y , final_tree, level)
+{
+    uni = names( table(input.dat[root]) )
+    for(i in uni)
+    {
+        cat(level)
+      
+        ind = as.matrix( which(input.dat[root]==i) )
+      
+        data_set = input.dat[ind,]
+        
+        col.names = colnames( input.dat )
+        
+        col.names = setdiff(col.names,root)
+        
+        data_set = data_set[col.names]
+        
+        entropy.y = calculate_entropy( name.y, data_set )
+        
+        if(entropy.y == 0)
+        {
+              subtree = FindNode(final_tree,level)
+
+              te = paste( i, as.matrix(data_set[name.y])[1], sep="-->" )
+              
+              subtree$AddChild( te )
+        }
+        else
+        {
+              subtree = FindNode( final_tree, level )
+              
+              subtree$AddChild( i )
+              
+              root_next = calculate_conditional_entropy( data_set, name.y )
+              
+              subtree = FindNode( final_tree, i )
+              
+              subtree$AddChild( root_next )
+              
+              end_tree( data_set , root_next ,name.y ,final_tree , root_next  )
+        }
+    }
+}
+
+#-------------------------------------------------------------------------#
+input.dat <- read.csv("D:\\College\\Academics\\SEM VI\\ML\\Programs\\Auswin\\Playtennis.csv")
+
+name.y = "Play.Tennis" 
+
+root = calculate_conditional_entropy( input.dat, name.y )
+
+final_tree = Node$new( root )
+
+end_tree( input.dat, root, name.y, final_tree, root )
+
+plot( final_tree )
