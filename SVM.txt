@@ -1,0 +1,24 @@
+
+library(e1071)
+
+input.dat <- read.csv("D:\\College\\Academics\\SEM VI\\ML\\Programs\\Auswin\\Playtennis.csv")
+
+colName = setdiff( colnames( input.dat ) , 'results'  )
+
+traningSet = input.dat[2:7,]
+
+testingSet = input.dat[1,]
+
+svmfit = svm( traningSet$results ~ ., data = traningSet[colName])
+
+outputProb = predict(svmfit , testingSet[colName]) 
+
+output = c()
+
+for(i in outputProb) {
+  if(i < 0.5)
+    output = c(0,output)
+  else
+    output = c(1,output)
+    
+}
