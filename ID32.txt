@@ -1,0 +1,71 @@
+options(scipen = 999)
+library("dequer")
+buyscomputer <- read.csv("F:/sem6/lab worksheets/machine learning/final_lab/buyscomputer.txt", sep="")
+
+q=queue()
+pushback(q,buyscomputer)
+pushback(q,"$")
+while(length(q)!=0){
+  
+  f=0
+  data=pop(q)
+  data <- droplevels(data)
+  asel=pop(q) #attribute selected for classification
+  
+  lev=levels(data$buys_computer)
+  infod=0
+  for(i in lev){
+    pi=nrow(data[which(data$buys_computer==i),])/nrow(data)
+    if(pi==1){
+      f=1
+      asel=paste(asel,"-->",i)
+      print(asel)
+      break
+    }
+    else
+      infod=infod-(pi*log2(pi))
+  }
+  #print(infod)
+  
+  if(f==0){
+    
+    infoad=c(rep(0,ncol(data)-1)) #info for each attribute (initially 0)
+    for(i in 1:ncol(data)-1){
+      leva=levels(data[,i]) #levels of each attribute
+      for(j in leva){
+        #print(i)
+        tdata=data[which(data[,i]==j),] #temp data for each value of an attribute 
+        
+        #print(tdata)
+        api=nrow(tdata)/nrow(data)  #attribute probability
+        for(k in lev){
+          capi=nrow(tdata[which(tdata[,ncol(tdata)]==k),])/nrow(tdata)#attribute probability for each class
+          
+          if(capi!=0){
+            infoad[i]=infoad[i]-(api*capi*log2(capi))
+          }
+        }
+      }
+    }
+    
+    
+    gain=infod-infoad#gain for each attribute (initially 0)
+    #print(gain)
+    a=which.max(gain)# the attribue index based on which table will be further splitted
+    
+    leva=levels(data[,a])
+    for(i in leva){
+      #create seperate table for each entry
+      tdata=data[which(data[,a]==i),]
+      tdata <- droplevels(tdata)
+      if(a==1)
+        tdata=tdata[,c(2:ncol(tdata))]
+      else
+        tdata=tdata[,c(1:(a-1),(a+1):ncol(tdata))]
+      pushback(q,tdata)
+      #print(tdata)
+      tasel=paste(asel," ",colnames(data)[a],":",i,",")
+      pushback(q,tasel)
+    }
+  }
+}
